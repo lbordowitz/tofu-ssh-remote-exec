@@ -1,0 +1,1 @@
+Run `tofu init` then `TF_LOG=DEBUG tofu apply`. Take a look when it tries to copy the script remotely.
