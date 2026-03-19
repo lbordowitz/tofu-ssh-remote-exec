@@ -1,6 +1,6 @@
 
 provider "aws" {
-  region = "us-east-2"
+  region = var.region
 }
 
 resource "tls_private_key" "custom_key" {
@@ -22,7 +22,7 @@ resource "aws_key_pair" "custom_key" {
 # VPC ID: 
 
 data "aws_vpc" "main" {
-  id = "vpc-073cdf4b47dad4497"
+  id = var.vpc_id
 }
 
 
@@ -82,7 +82,7 @@ resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv6" {
 
 resource "aws_instance" "windows" {
   # Windows Server 2025 Base, in us-east-2
-  ami           = "ami-0594938cc69a82b95"
+  ami           = var.ami
   instance_type = "t3.micro"
 
   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
@@ -104,7 +104,7 @@ resource "aws_instance" "windows" {
   # "execute" a remote dummy command
   provisioner "remote-exec" {
     inline = [
-      "Write-Output 'Finished!'",
+      "echo 'Finished!'",
     ]
     # Using this as a workaround to circumvent the failure
     # on_failure = continue
