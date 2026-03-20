@@ -80,34 +80,45 @@ resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv6" {
   ip_protocol       = "-1" # semantically equivalent to all ports
 }
 
-resource "aws_instance" "windows" {
-  # Windows Server 2025 Base, in us-east-2
+resource "aws_instance" "linux" {
+  # Debian ami
   ami           = var.ami
   instance_type = "t3.micro"
 
   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
 
-  user_data = file("sshify.yml")
+  user_data = file("sshify.sh")
 
-  connection {
-    agent = false
-    host = self.public_ip
-    private_key = tls_private_key.custom_key.private_key_pem
-    script_path = "C:/Windows/Temp/opentofu_%RAND%.ps1"
-    target_platform = "windows"
-    timeout = "10m"
-    type = "ssh"
-    user = "Administrator"
-  }
   key_name = aws_key_pair.custom_key.key_name
-  # We need to know when the instance is up (SSH is available), so we
-  # "execute" a remote dummy command
+  
+  # wait until the user script is done, so we can ssh into this "properly"
   provisioner "remote-exec" {
+    connection {
+      agent = false
+      host = self.public_ip
+      private_key = tls_private_key.custom_key.private_key_pem
+      target_platform = "unix"
+      timeout = "10m"
+      type = "ssh"
+      user = "admin"
+    }
     inline = [
-      "echo 'Finished!'",
+      "while [ ! -f /tmp/userdata_done ]; do sleep 5; done",
     ]
-    # Using this as a workaround to circumvent the failure
-    # on_failure = continue
+  }
+
+  provisioner "remote-exec" {
+    connection {
+      agent = false
+      host = self.public_ip
+      private_key = tls_private_key.custom_key.private_key_pem
+      target_platform = "unix"
+      timeout = "10m"
+      type = "ssh"
+      user = "admin"
+    }
+
+    inline = ["Write-Output 'Finished!'"]
   }
 }
 
